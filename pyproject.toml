@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ALPACA_DT_Sim"
-version = "0.1.1"
+version = "0.1.2"
 authors = [
   { name="Nolan Brady", email="nobr3541@colorado.edu" },
 ]
