@@ -27,7 +27,7 @@ def read_long_description() -> str:
 
 setup(
     name=DIST_NAME,
-    version="0.1.0",
+    version="0.1.1",
     description="Gymnasium environment backed by the ALPACA dynamics model for treatment optimization research.",
     long_description=read_long_description(),
     long_description_content_type="text/markdown",
