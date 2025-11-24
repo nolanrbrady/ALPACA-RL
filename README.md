@@ -5,17 +5,14 @@
 </p>
 
 ## Overview
+ALPACA is a Gymnasium-compatible Reinforcement Learning (RL) environment that simulates longitudinal trajectories of patients with Alzheimer’s disease (AD). It enables researchers to evaluate optimized treatment policies, generate clinically grounded counterfactuals, and study explainable RL methods in a medical setting. ALPACA is powered by a pretrained Mixture-of-Experts Transformer that models patient-specific disease progression as a function of current clinical state and prescribed medications.
 
-ALPACA is a Gymnasium-compatible Reinforcement Learning (RL) environment designed to simulate and optimize treatment strategies for Alzheimer's Disease (AD). It uses a pre-trained dynamics model (a Mixture of Experts Transformer) to forecast patient progression based on their current clinical state and prescribed medications.
-
-The objective is to train RL agents to prescribe optimal combinations of FDA-approved medications to maximize patient cognitive outcomes (e.g., stabilizing or improving memory scores) over time.
+Although ALPACA is flexible enough to support a wide range of clinical decision-making experiments, its central motivation is to investigate whether RL agents can identify effective combinations or sequences of existing FDA-approved medications that may stabilize or even improve—cognitive outcomes over time. By providing a high-fidelity, medication-aware simulation, ALPACA offers a platform for exploring treatment repurposing strategies for AD in silico.
 
 ## Installation
 
-(Assuming this is installed via pip)
-
 ```bash
-pip install alpaca-rl
+pip install ALPACA-DT-Sim
 ```
 
 *Note: Ensure you have the required data artifacts (models, scalers, schema) in your working directory or specified data path.*
@@ -27,7 +24,7 @@ Here is a minimal example of how to initialize the environment and run a simple 
 ```python
 import gymnasium as gym
 import numpy as np
-from alpaca_env import ALPACAEnv  # Adjust import based on final package structure
+from ALPACA_DT_Sim import ALPACAEnv
 
 # 1. Initialize the environment
 env = ALPACAEnv(
@@ -148,6 +145,7 @@ ALPACA is fully compatible with **Stable Baselines 3 (SB3)**.
 ```python
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
+from ALPACA_DT_Sim import ALPACAEnv
 
 # Create vectorized environment
 vec_env = make_vec_env(lambda: ALPACAEnv(), n_envs=4)
