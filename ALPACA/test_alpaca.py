@@ -8,9 +8,8 @@ import pandas as pd
 import pytest
 import torch
 
-from alpaca_env import ALPACAEnv
-from artifact_loader import ArtifactLoader
-from adni_gaussian_generation.build_initial_state_gaussians import build_gaussian_artifact_from_earliest
+from ALPACA.alpaca_env import ALPACAEnv
+from ALPACA.artifact_loader import ArtifactLoader
 
 
 @pytest.fixture(scope="module")
@@ -19,41 +18,9 @@ def alpaca_dir() -> Path:
 
 
 @pytest.fixture(scope="module")
-def gaussian_artifact(alpaca_dir: Path, tmp_path_factory) -> Path:
-    """Build a Gaussian artifact from the available training data for testing."""
-    tmp_dir = tmp_path_factory.mktemp("gaussian_artifact")
-    schema_path = alpaca_dir / 'columns_schema.json'
-    scaler_path = alpaca_dir / 'scaler_X.joblib'
-    training_csv = alpaca_dir / 'adni_gaussian_generation' / 'X_train.csv'
-
-    with open(schema_path, 'r') as f:
-        schema = json.load(f)
-    observation_cols = schema.get('observation_cols', [])
-    categorical_groups = schema.get('y_categorical_groups', {})
-    if not observation_cols:
-        raise ValueError("Schema missing 'observation_cols'.")
-
-    scaler = joblib.load(scaler_path)
-    training_df = pd.read_csv(training_csv)
-    time_col = 'months_since_bl'
-    earliest_idx = training_df.groupby('subject_id')[time_col].idxmin()
-    earliest_scaled = training_df.loc[earliest_idx].reset_index(drop=True)
-
-    artifact = build_gaussian_artifact_from_earliest(
-        earliest_scaled=earliest_scaled,
-        observation_cols=observation_cols,
-        scaler=scaler,
-        categorical_groups=categorical_groups,
-    )
-    artifact_path = tmp_dir / 'initial_state_gaussians.joblib'
-    joblib.dump(artifact, artifact_path, compress=True)
-    return artifact_path
-
-
-@pytest.fixture(scope="module")
-def artifact_loader(alpaca_dir: Path, gaussian_artifact: Path) -> ArtifactLoader:
-    """Provide an artifact loader rooted at the ALPACA package with a custom Gaussian artifact."""
-    return ArtifactLoader(artifact_root=alpaca_dir, initial_state_gaussian_path=gaussian_artifact)
+def artifact_loader(alpaca_dir: Path) -> ArtifactLoader:
+    """Provide an artifact loader rooted at the ALPACA package."""
+    return ArtifactLoader(artifact_root=alpaca_dir)
 
 
 @pytest.fixture(scope="module")
@@ -225,7 +192,7 @@ def test_env_requires_gaussian_artifact(alpaca_dir: Path, tmp_path):
         ALPACAEnv(cohort_type='all', artifact_loader=missing_loader)
 
 
-def test_gaussian_initial_state_sampling(artifact_loader: ArtifactLoader, gaussian_artifact: Path):
+def test_gaussian_initial_state_sampling(artifact_loader: ArtifactLoader):
     """Validate Gaussian artifact loads, samples within bounds, and preserves one-hot groups."""
     env_gauss = ALPACAEnv(cohort_type='all', artifact_loader=artifact_loader)
     assert env_gauss.initial_state_gaussians is not None
@@ -240,7 +207,11 @@ def test_gaussian_initial_state_sampling(artifact_loader: ArtifactLoader, gaussi
             continue
         total = float(series[cols].sum())
         assert pytest.approx(total, abs=1e-6) == 1.0
-    artifact_payload = joblib.load(gaussian_artifact)
+    
+    # Load artifact from loader path for validation
+    path = artifact_loader.paths.initial_state_gaussians_path
+    artifact_payload = joblib.load(path)
+    
     assert artifact_payload['observation_cols'] == env_gauss.observation_cols
     cohort_stats = artifact_payload['distributions'][env_gauss.cohort_type]
     assert len(cohort_stats['clusters']) > 0

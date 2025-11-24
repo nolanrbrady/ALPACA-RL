@@ -6,12 +6,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from artifact_loader import ArtifactLoader
-from env_constants import DELTA_COLUMN, NO_MEDICATION_ACTION
-from initial_state_sampler import InitialStateSampler
-from reward_calculator import RewardCalculator
-from scaler_validator import ScalerValidator
-from state_validator import StateValidator
+from ALPACA.artifact_loader import ArtifactLoader
+from ALPACA.env_constants import DELTA_COLUMN, NO_MEDICATION_ACTION
+from ALPACA.initial_state_sampler import InitialStateSampler
+from ALPACA.reward_calculator import RewardCalculator
+from ALPACA.scaler_validator import ScalerValidator
+from ALPACA.state_validator import StateValidator
 
 
 class DummyScaler:
@@ -129,11 +129,14 @@ def test_initial_state_sampler_errors_and_sampling():
     )
     y_groups = {'cat': ['cat_a']}
     valid_gaussians = {
-        'all': {
-            'clusters': [{'mean': np.array([0.0, 0.0]), 'cov': np.eye(2), 'weight': 1.0}],
-            'weights': np.array([1.0]),
-            'power_transformer': IdentityTransformer(),
-            'num_samples': 1,
+        'observation_cols': observation_cols,
+        'distributions': {
+            'all': {
+                'clusters': [{'mean': np.array([0.0, 0.0]), 'cov': np.eye(2), 'weight': 1.0}],
+                'weights': np.array([1.0]),
+                'power_transformer': IdentityTransformer(),
+                'num_samples': 1,
+            }
         }
     }
     sampler = InitialStateSampler(
@@ -148,31 +151,32 @@ def test_initial_state_sampler_errors_and_sampling():
     assert 0.0 <= sample[1] <= 1.0  # categorical clipped/one-hot
 
     bad_gaussians = {}
-    sampler_bad = InitialStateSampler(
-        observation_cols=observation_cols,
-        y_categorical_groups=y_groups,
-        variable_bounds=bounds,
-        initial_state_payload=bad_gaussians,
-    )
     with pytest.raises(ValueError):
-        sampler_bad.sample('all')
+        sampler_bad = InitialStateSampler(
+            observation_cols=observation_cols,
+            y_categorical_groups=y_groups,
+            variable_bounds=bounds,
+            initial_state_payload=bad_gaussians,
+        )
 
     missing_transform = {
-        'all': {
-            'clusters': [{'mean': np.array([0.0, 0.0]), 'cov': np.eye(2), 'weight': 1.0}],
-            'weights': np.array([1.0]),
-            'power_transformer': None,
-            'num_samples': 1,
+        'observation_cols': observation_cols,
+        'distributions': {
+            'all': {
+                'clusters': [{'mean': np.array([0.0, 0.0]), 'cov': np.eye(2), 'weight': 1.0}],
+                'weights': np.array([1.0]),
+                'power_transformer': None,
+                'num_samples': 1,
+            }
         }
     }
-    sampler_missing = InitialStateSampler(
-        observation_cols=observation_cols,
-        y_categorical_groups=y_groups,
-        variable_bounds=bounds,
-        initial_state_payload=missing_transform,
-    )
     with pytest.raises(ValueError):
-        sampler_missing.sample('all')
+        sampler_missing = InitialStateSampler(
+            observation_cols=observation_cols,
+            y_categorical_groups=y_groups,
+            variable_bounds=bounds,
+            initial_state_payload=missing_transform,
+        )
 
 
 def make_reward_calc(reliability=0.9):
