@@ -8,21 +8,21 @@ import numpy as np
 import pandas as pd
 import torch
 
-from artifact_loader import ArtifactLoader
-from env_constants import (
+from .artifact_loader import ArtifactLoader
+from .env_constants import (
     DEFAULT_MAX_EPISODE_LENGTH,
     DEFAULT_RELIABILITY_RXX,
     DELTA_COLUMN,
     NO_MEDICATION_ACTION,
     SUPPORTED_COHORTS,
 )
-from initial_state_sampler import InitialStateSampler
-from reward_calculator import RewardCalculator
-from scaler_validator import ScalerValidator
-from schema_validator import SchemaValidator
-from state_scaling import manage_state_scaling as shared_manage_state_scaling
-from state_validator import StateValidator
-from action_validator import ActionValidator
+from .initial_state_sampler import InitialStateSampler
+from .reward_calculator import RewardCalculator
+from .scaler_validator import ScalerValidator
+from .schema_validator import SchemaValidator
+from .state_scaling import manage_state_scaling as shared_manage_state_scaling
+from .state_validator import StateValidator
+from .action_validator import ActionValidator
 
 
 class ALPACAEnv(gym.Env):

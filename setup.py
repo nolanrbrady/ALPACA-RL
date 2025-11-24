@@ -11,7 +11,6 @@ PACKAGE_DATA_PATTERNS = [
     "*.json",
     "*.joblib",
     "*.pt",
-    "adni_gaussian_generation/*.csv",
 ]
 
 

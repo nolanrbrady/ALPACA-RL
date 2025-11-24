@@ -4,7 +4,7 @@ from typing import Dict, List, Sequence
 
 import numpy as np
 
-from env_constants import DELTA_COLUMN
+from .env_constants import DELTA_COLUMN
 
 
 class ScalerValidator:

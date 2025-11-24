@@ -9,8 +9,8 @@ import joblib
 import pandas as pd
 import torch
 
-from env_constants import DELTA_COLUMN, NO_MEDICATION_ACTION
-from moe_transformer import TransformerWithMoE
+from .env_constants import DELTA_COLUMN, NO_MEDICATION_ACTION
+from .moe_transformer import TransformerWithMoE
 
 
 @dataclass

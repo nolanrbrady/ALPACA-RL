@@ -2,7 +2,7 @@
 
 from typing import Dict, List
 
-from env_constants import DELTA_COLUMN, NO_MEDICATION_ACTION
+from .env_constants import DELTA_COLUMN, NO_MEDICATION_ACTION
 
 
 class SchemaValidator:
