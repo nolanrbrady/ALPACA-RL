@@ -1,5 +1,7 @@
 # ALPACA: Alzheimer’s Learning Platform for Agent-based Care Advancement
 
+![Alt Text](./alpaca_mascot.png)
+
 ## Overview
 
 ALPACA is a Gymnasium-compatible Reinforcement Learning (RL) environment designed to simulate and optimize treatment strategies for Alzheimer's Disease (AD). It uses a pre-trained dynamics model (a Mixture of Experts Transformer) to forecast patient progression based on their current clinical state and prescribed medications.
