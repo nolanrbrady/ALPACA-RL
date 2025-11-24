@@ -6,12 +6,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from ALPACA.artifact_loader import ArtifactLoader
-from ALPACA.env_constants import DELTA_COLUMN, NO_MEDICATION_ACTION
-from ALPACA.initial_state_sampler import InitialStateSampler
-from ALPACA.reward_calculator import RewardCalculator
-from ALPACA.scaler_validator import ScalerValidator
-from ALPACA.state_validator import StateValidator
+from ALPACA_DT_Sim.artifact_loader import ArtifactLoader
+from ALPACA_DT_Sim.env_constants import DELTA_COLUMN, NO_MEDICATION_ACTION
+from ALPACA_DT_Sim.initial_state_sampler import InitialStateSampler
+from ALPACA_DT_Sim.reward_calculator import RewardCalculator
+from ALPACA_DT_Sim.scaler_validator import ScalerValidator
+from ALPACA_DT_Sim.state_validator import StateValidator
 
 
 class DummyScaler:

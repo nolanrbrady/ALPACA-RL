@@ -8,8 +8,8 @@ import pandas as pd
 import pytest
 import torch
 
-from ALPACA.alpaca_env import ALPACAEnv
-from ALPACA.artifact_loader import ArtifactLoader
+from ALPACA_DT_Sim.alpaca_env import ALPACA_DT_SimEnv
+from ALPACA_DT_Sim.artifact_loader import ArtifactLoader
 
 
 @pytest.fixture(scope="module")

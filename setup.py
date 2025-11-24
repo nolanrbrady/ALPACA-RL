@@ -5,7 +5,8 @@ from pathlib import Path
 from setuptools import find_packages, setup
 
 BASE_DIR = Path(__file__).resolve().parent
-PACKAGE_NAME = "ALPACA"
+PACKAGE_NAME = "ALPACA_DT_Sim"
+DIST_NAME = "ALPACA_DT_Sim"
 PACKAGE_DATA_PATTERNS = [
     "*.csv",
     "*.json",
@@ -25,7 +26,7 @@ def read_long_description() -> str:
 
 
 setup(
-    name="ALPACA",
+    name=DIST_NAME,
     version="0.1.0",
     description="Gymnasium environment backed by the ALPACA dynamics model for treatment optimization research.",
     long_description=read_long_description(),

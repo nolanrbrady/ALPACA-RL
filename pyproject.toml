@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ALPACA_DT_Sim"
+version = "0.1.0"
+authors = [
+  { name="Nolan Brady", email="nobr3541@colorado.edu" },
+]
+description = "Gymnasium environment backed by the ALPACA dynamics model for treatment optimization research."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = {file = "LICENSE.md"}
+dependencies = [
+    "gymnasium>=0.29",
+    "numpy>=1.23",
+    "pandas>=1.5",
+    "torch>=2.0",
+    "scikit-learn>=1.2",
+    "joblib>=1.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/nolanrbrady/ALPACA-RL"
+Issues = "https://github.com/nolanrbrady/ALPACA-RL/issues"
