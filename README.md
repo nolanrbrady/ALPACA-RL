@@ -1,7 +1,7 @@
 # ALPACA: Alzheimer’s Learning Platform for Agent-based Care Advancement
 
 <p align="center">
-  <img src="PATH_TO_IMAGE/alpaca.png" width="250" />
+  <img src="alpaca_mascot.png" width="250" />
 </p>
 
 ## Overview
