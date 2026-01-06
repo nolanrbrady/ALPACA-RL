@@ -15,7 +15,7 @@ Although ALPACA is flexible enough to support a wide range of clinical decision-
 pip install ALPACA-DT-Sim
 ```
 
-*Note: Ensure you have the required data artifacts (models, scalers, schema) in your working directory or specified data path.*
+*Note: The pip package bundles the required artifacts (model, scalers, schema, bounds, Gaussian starts) by default.*
 
 ## Quick Start
 
@@ -94,7 +94,9 @@ The action space is `MultiBinary(17)`, representing the prescription status of v
 16. `Supplement_active`
 17. `Thyroid Hormone_active`
 
-*Constraints*: The environment validates actions to ensure consistency (e.g., checking mutually exclusive combinations if defined).
+*Constraints*:
+- At least one action must be active (`sum(action) >= 1`). An all-zero action immediately terminates the episode with reward `-10`.
+- `No Medication_active` is mutually exclusive with all other actions. If it is selected alongside any other medication, the episode terminates with reward `-10`.
 
 ### Reward Function
 The reward is designed to incentivize **reliable improvement** or **stabilization** in the target metric (default: `ADNI_MEM`) while filtering out measurement noise.
@@ -112,7 +114,7 @@ Where:
 **Key Behaviors:**
 - **Positive Reward**: Significant improvement relative to noise.
 - **Negative Reward**: Significant decline.
-- **Zero Reward**: If the resulting state violates physiological bounds (episode terminates).
+- **Zero Reward**: If the *predicted next state* violates physiological bounds, the episode terminates and the reward is neutralized to `0` (the environment state is not advanced).
 - **Clipping**: Rewards are clipped between -10 and +10 to stabilize training.
 
 ### Dynamics Model
@@ -127,7 +129,7 @@ The `ALPACAEnv` constructor accepts several parameters to customize the simulati
 |-----------|------|---------|-------------|
 | `time_delta_months` | `float` | `6.0` | The simulated time duration between steps (visits). |
 | `reward_metric` | `str` | `'ADNI_MEM'` | The clinical feature to optimize (e.g., 'ADNI_MEM', 'CDRSB'). |
-| `cohort_type` | `str` | `'all'` | Subset of patients to sample initial states from: `'all'`, `'impaired'`, or `'healthy'`. |
+| `cohort_type` | `str` | `'impaired'` | Subset of patients to sample initial states from: `'all'`, `'impaired'`, or `'healthy'`. |
 | `mc_samples` | `int` | `0` | Number of MC dropout samples for uncertainty estimation (0 to disable). |
 
 ## Included Artifacts

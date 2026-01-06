@@ -1,9 +1,9 @@
 ## ALPACA Environment Design
 
 ### Purpose
-Wrap the pretrained ALPACA dynamics model as a Gymnasium environment for reinforcement learning. Emphasis: deterministic wiring to preprocessing artifacts, strict data integrity (fail fast, no silent fallbacks), and modular components that are individually testable.
+Wrap the pretrained ALPACA dynamics model as a Gymnasium environment for reinforcement learning. Emphasis: deterministic wiring to preprocessing artifacts, strict data integrity (fail fast in the core simulation path), and modular components that are individually testable.
 
-### Artifacts (relative to `data_path`)
+### Artifacts (bundled with the package)
 - `scaler_X.joblib` and `scaler_y.joblib`
     - These are the scalers that we use to scale the input and output data to match the training data for the best_moe_transformer_model.pt model.
 - `best_moe_transformer_model.pt`
@@ -23,7 +23,7 @@ Wrap the pretrained ALPACA dynamics model as a Gymnasium environment for reinfor
     - It also contains the sample columns for each cohort.
 
 ### Core Modules
-- **artifact_loader.py**: resolves paths, loads scalers/bounds/schema/Gaussians, instantiates model; ensures `No Medication_active` and `next_visit_months` are present in schema.
+- **artifact_loader.py**: resolves paths and loads scalers/bounds/schema/Gaussians, instantiates the model (loads the prebuilt artifacts shipped with the installed package).
 - **scaler_validator.py**: aligns `scaler_X` feature names (drop `months_since_bl`, map aliases to `next_visit_months`), checks duplicates, missing stats, extra/missing features, required delta and continuous outputs.
 - **state_validator.py**: enforces categorical one-hots, clips to ADNI bounds, reports detailed bound violations (non-finite/above/below with tolerance).
 - **initial_state_sampler.py**: samples cohort-specific Gaussian starts; applies categorical enforcement and bounds; fails loudly on missing cohorts/weights/transformer.
@@ -42,6 +42,7 @@ Wrap the pretrained ALPACA dynamics model as a Gymnasium environment for reinfor
 
 ### Notes on Lifecycle
 - Input and output into the environment are expected to be in unscaled units so we should always be scaling the inputs into the model and unscaling the outputs from the model.
+- MC-dropout uncertainty reporting is best-effort; failures in uncertainty summarization do not fail the step.
 
 ### Reset Lifecycle
 - Sample start via `InitialStateSampler` for the cohort; reset sequence, episode flags, reward/info.
