@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 import torch
 
-from ALPACA_DT_Sim.alpaca_env import ALPACA_DT_SimEnv
+from ALPACA_DT_Sim.alpaca_env import ALPACAEnv
 from ALPACA_DT_Sim.artifact_loader import ArtifactLoader
 
 
@@ -539,3 +539,164 @@ def test_info_payload_and_spaces(env: ALPACAEnv):
     assert isinstance(info.get('sequence_length'), int)
     if env.mc_samples <= 0:
         assert 'mean_cont_uncertainty' not in info
+
+
+def test_step_after_termination_returns_current_state(env: ALPACAEnv):
+    """If already terminated, step should return the current state without advancing."""
+    env.reset()
+    state_before = env.state.copy()
+    invalid = np.zeros(len(env.action_cols), dtype=int)  # violates "must take at least one action"
+    obs, reward, terminated, truncated, _ = env.step(invalid)
+    assert terminated and not truncated
+    np.testing.assert_allclose(obs, state_before, rtol=0, atol=0)
+
+    # Subsequent steps should not advance state
+    valid = np.zeros(len(env.action_cols), dtype=int)
+    valid[0 if env._no_med_idx != 0 else 1] = 1
+    obs2, reward2, terminated2, truncated2, _ = env.step(valid)
+    assert terminated2 and not truncated2
+    assert reward2 == reward
+    np.testing.assert_allclose(obs2, state_before, rtol=0, atol=0)
+
+
+def test_render_is_noop(env: ALPACAEnv):
+    """render() is currently a no-op but should not error."""
+    env.render()
+
+
+def test_uncertainty_reporting_errors_are_swallowed(monkeypatch: pytest.MonkeyPatch, artifact_loader: ArtifactLoader):
+    """Failures in uncertainty summarization should not fail a step."""
+    env_local = ALPACAEnv(mc_samples=3, cohort_type='all', artifact_loader=artifact_loader)
+    env_local.reset()
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(env_local, "_record_uncertainty_metrics", boom)
+    action = np.zeros(len(env_local.action_cols), dtype=int)
+    action[0 if env_local._no_med_idx != 0 else 1] = 1
+    env_local.step(action)
+    env_local.close()
+
+
+def test_step_handles_missing_model_outputs(monkeypatch: pytest.MonkeyPatch, artifact_loader: ArtifactLoader):
+    """The env should tolerate missing cont outputs, but expects bin outputs for categorical enforcement."""
+    # 1) Continuous-only (expected to fail: categoricals require bin outputs)
+    env_cont_only = ALPACAEnv(cohort_type='all', artifact_loader=artifact_loader)
+    env_cont_only.reset()
+
+    def cont_only_forward(*args, **kwargs):
+        cont = torch.zeros((1, 1, len(env_cont_only.model_cont_output_cols)), device=env_cont_only.device)
+        return cont, None
+
+    monkeypatch.setattr(env_cont_only.model, "forward", cont_only_forward)
+    action = np.zeros(len(env_cont_only.action_cols), dtype=int)
+    action[0 if env_cont_only._no_med_idx != 0 else 1] = 1
+    with pytest.raises(KeyError):
+        env_cont_only.step(action)
+    env_cont_only.close()
+
+    # 2) Binary-only
+    env_bin_only = ALPACAEnv(cohort_type='all', artifact_loader=artifact_loader)
+    env_bin_only.reset()
+
+    def bin_only_forward(*args, **kwargs):
+        bin_logits = torch.zeros((1, 1, len(env_bin_only.model_binary_output_cols)), device=env_bin_only.device)
+        return None, bin_logits
+
+    monkeypatch.setattr(env_bin_only.model, "forward", bin_only_forward)
+    action = np.zeros(len(env_bin_only.action_cols), dtype=int)
+    action[0 if env_bin_only._no_med_idx != 0 else 1] = 1
+    obs, _, terminated, truncated, _ = env_bin_only.step(action)
+    assert not terminated and not truncated
+    assert obs.shape == (len(env_bin_only.observation_cols),)
+    env_bin_only.close()
+
+
+def test_model_nan_binary_outputs_raise(monkeypatch: pytest.MonkeyPatch, artifact_loader: ArtifactLoader):
+    """NaN binary model outputs should raise before corrupting state."""
+    env_local = ALPACAEnv(cohort_type='all', artifact_loader=artifact_loader)
+    env_local.reset()
+
+    def fake_forward(*args, **kwargs):
+        cont = torch.zeros((1, 1, len(env_local.model_cont_output_cols)), device=env_local.device)
+        bin_logits = torch.full((1, 1, len(env_local.model_binary_output_cols)), float('nan'), device=env_local.device)
+        return cont, bin_logits
+
+    monkeypatch.setattr(env_local.model, "forward", fake_forward)
+    action = np.zeros(len(env_local.action_cols), dtype=int)
+    action[0 if env_local._no_med_idx != 0 else 1] = 1
+    with pytest.raises(ValueError, match="binary outputs"):
+        env_local.step(action)
+    env_local.close()
+
+
+def test_validate_cohort_type_rejects_invalid(monkeypatch: pytest.MonkeyPatch):
+    """_validate_cohort_type should reject unknown cohort values."""
+    env = ALPACAEnv.__new__(ALPACAEnv)
+    with pytest.raises(ValueError, match="Invalid cohort type"):
+        env._validate_cohort_type("unknown")  # type: ignore[arg-type]
+
+
+def test_select_device_prefers_cuda_then_mps_then_cpu(monkeypatch: pytest.MonkeyPatch):
+    """_select_device should follow the documented priority order."""
+    env = ALPACAEnv.__new__(ALPACAEnv)
+
+    # CUDA wins
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    assert str(env._select_device()) == "cuda"
+
+    # Then MPS
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    assert str(env._select_device()) == "mps"
+
+    # Fallback CPU
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: False)
+    assert str(env._select_device()) == "cpu"
+
+
+def test_from_artifacts_wires_loader(monkeypatch: pytest.MonkeyPatch):
+    """from_artifacts should construct an ArtifactLoader and pass it into the env constructor."""
+    import ALPACA_DT_Sim.alpaca_env as env_mod
+
+    captured = {}
+
+    class DummyLoader:
+        def __init__(self, artifact_root, initial_state_gaussian_path=None):
+            captured["artifact_root"] = artifact_root
+            captured["initial_state_gaussian_path"] = initial_state_gaussian_path
+
+    def fake_init(self, *args, **kwargs):
+        captured["passed_loader"] = kwargs.get("artifact_loader")
+
+    monkeypatch.setattr(env_mod, "ArtifactLoader", DummyLoader)
+    monkeypatch.setattr(ALPACAEnv, "__init__", fake_init, raising=True)
+
+    env = ALPACAEnv.from_artifacts("/tmp/artifacts", initial_state_gaussian_path="/tmp/gauss.joblib")
+    assert env is not None
+    assert captured["artifact_root"] == "/tmp/artifacts"
+    assert captured["initial_state_gaussian_path"] == "/tmp/gauss.joblib"
+    assert isinstance(captured["passed_loader"], DummyLoader)
+
+
+def test_step_rejects_non_finite_model_input(monkeypatch: pytest.MonkeyPatch, artifact_loader: ArtifactLoader):
+    """Non-finite model inputs should raise before inference."""
+    env_local = ALPACAEnv(cohort_type='all', artifact_loader=artifact_loader)
+    env_local.reset()
+
+    real_build = env_local._build_model_input
+
+    def fake_build(obs, action):
+        df = real_build(obs, action)
+        df.iloc[0, 0] = float('nan')
+        return df
+
+    monkeypatch.setattr(env_local, "_build_model_input", fake_build)
+    action = np.zeros(len(env_local.action_cols), dtype=int)
+    action[0 if env_local._no_med_idx != 0 else 1] = 1
+    with pytest.raises(ValueError, match="non-finite"):
+        env_local.step(action)
+    env_local.close()
